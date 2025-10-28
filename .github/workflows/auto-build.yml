@@ -1,0 +1,52 @@
+name: Auto Build
+
+on:
+  push:
+    branches:
+      - main   # or your preferred branch
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+      - name: Generate build number
+        id: build_number
+        run: |
+          # Create a unique build number (using timestamp)
+          BUILD_NO=$(date +%Y%m%d%H%M%S)
+          echo "BUILD_NO=$BUILD_NO" >> $GITHUB_ENV
+
+      - name: Run build
+        run: |
+          echo "Running build number $BUILD_NO..."
+          mkdir -p build
+          echo "This is build number $BUILD_NO" > build/build-info.txt
+          # Add your actual build command here, e.g.:
+          # python setup.py build
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-${{ env.BUILD_NO }}
+          path: build/
+
+      - name: Create Git tag for this build
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git tag build-${BUILD_NO}
+          git push origin build-${BUILD_NO}
